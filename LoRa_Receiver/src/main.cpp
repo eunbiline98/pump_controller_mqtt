@@ -8,10 +8,15 @@
 #define RF95_FREQ 915E6 // Sesuaikan dengan wilayah
 
 // Pin relay dan sensor
-#define relayPin 27
-#define sensorPotPin 32
-#define upPotPin 34
-#define downPotPin 35
+#define RELAY_PIN 27
+#define PRESURE_PIN 32
+#define UP_POT_PIN 34
+#define DOWN_POT_PIN 35
+#define BUTTON_PIN 15
+
+// Indicator
+#define LED_LORA 25
+#define LED_RELAY 26
 
 // Konstanta untuk perhitungan rata-rata
 #define NUM_READINGS 10
@@ -26,6 +31,11 @@ int averageSensor = 0;
 int averageUp = 0;
 int averageDown = 0;
 
+// Kontrol relay dari tombol push on
+static bool lastButtonState = HIGH;
+static unsigned long lastDebounceTime = 0;
+const unsigned long debounceDelay = 50; // 50ms debounce
+
 bool isRelayOn = false;
 unsigned long relayStartTime = 0;
 const unsigned long relayDuration = 10 * 60 * 1000; // 10 menit
@@ -37,8 +47,14 @@ void setup()
 {
   Serial.begin(115200);
 
-  pinMode(relayPin, OUTPUT);
-  digitalWrite(relayPin, LOW);
+  pinMode(LED_RELAY, OUTPUT);
+  pinMode(LED_LORA, OUTPUT);
+  pinMode(RELAY_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  digitalWrite(RELAY_PIN, LOW);
+  digitalWrite(LED_RELAY, LOW);
+  digitalWrite(LED_LORA, LOW);
 
   LoRa.setPins(SS_PIN, RST_PIN, DIO0_PIN);
   if (!LoRa.begin(RF95_FREQ))
@@ -55,14 +71,14 @@ void loop()
 {
   unsigned long currentMillis = millis();
 
-  // Kirim data setiap 1 detik
+  // *** Kirim data setiap 1 detik ***
   if (currentMillis - lastSendTime >= sendInterval)
   {
     lastSendTime = currentMillis;
 
-    int sensorValue = analogRead(sensorPotPin);
-    int upValue = analogRead(upPotPin);
-    int downValue = analogRead(downPotPin);
+    int sensorValue = analogRead(PRESURE_PIN);
+    int upValue = analogRead(UP_POT_PIN);
+    int downValue = analogRead(DOWN_POT_PIN);
 
     // Hapus pembacaan lama dari total
     totalSensor -= sensorReadings[readIndex];
@@ -92,11 +108,21 @@ void loop()
     float upPressure = map(averageUp, 0, 4095, 0, 50);
     float downPressure = map(averageDown, 0, 4095, 0, 50);
 
-    // Kirim data tekanan ke Gateway
-    String data = "P:" + String(sensorPressure) + " UP:" + String(upPressure) + " DOWN:" + String(downPressure);
+    // Tambahkan status relay ke data yang dikirim
+    String relayStatus = isRelayOn ? "ON" : "OFF";
+    String data = "P:" + String(sensorPressure) + " UP:" + String(upPressure) + " DOWN:" + String(downPressure) + " RELAY:" + relayStatus;
+
+    // LED_LORA menyala sebelum kirim data
+    digitalWrite(LED_LORA, HIGH);
+
+    // Kirim data ke Gateway
     LoRa.beginPacket();
     LoRa.print(data);
     LoRa.endPacket();
+
+    // Matikan LED_LORA setelah 100ms
+    delay(100);
+    digitalWrite(LED_LORA, LOW);
 
     Serial.println("Data terkirim ke Gateway: " + data);
   }
@@ -115,24 +141,49 @@ void loop()
 
     if (receivedMessage.equalsIgnoreCase("ON"))
     {
-      digitalWrite(relayPin, LOW);
-      // isRelayOn = true;
-      // relayStartTime = currentMillis;
-      Serial.println("Relay ON");
+      digitalWrite(RELAY_PIN, HIGH); // Nyalakan Relay
+      digitalWrite(LED_RELAY, HIGH);
+      isRelayOn = true;
+      relayStartTime = currentMillis;
+      Serial.println("Relay ON dari gateway");
     }
     else if (receivedMessage.equalsIgnoreCase("OFF"))
     {
-      digitalWrite(relayPin, HIGH);
-      // isRelayOn = false;
-      Serial.println("Relay OFF");
+      digitalWrite(RELAY_PIN, LOW); // Matikan Relay
+      digitalWrite(LED_RELAY, LOW);
+      isRelayOn = false;
+      Serial.println("Relay OFF dari gateway");
     }
   }
 
   // Matikan relay setelah 10 menit
-  // if (isRelayOn && currentMillis - relayStartTime >= relayDuration)
+  if (isRelayOn && currentMillis - relayStartTime >= relayDuration)
+  {
+    digitalWrite(RELAY_PIN, LOW);
+    digitalWrite(LED_RELAY, LOW); // Matikan LED relay
+    isRelayOn = false;
+    Serial.println("Relay OFF (Timeout 10 menit)");
+  }
+
+  // Kontrol relay dari tombol push on
+  // bool buttonState = digitalRead(BUTTON_PIN);
+
+  // if (buttonState != lastButtonState)
   // {
-  //   digitalWrite(relayPin, LOW);
-  //   isRelayOn = false;
-  //   Serial.println("Relay OFF (Timeout)");
+  //   lastDebounceTime = currentMillis; // Reset debounce timer
   // }
+
+  // if ((currentMillis - lastDebounceTime) > debounceDelay)
+  // {
+  //   if (buttonState == LOW && lastButtonState == HIGH)
+  //   {                         // Tombol ditekan
+  //     isRelayOn = !isRelayOn; // Toggle relay
+  //     digitalWrite(RELAY_PIN, isRelayOn ? HIGH : LOW);
+  //     digitalWrite(LED_RELAY, isRelayOn ? HIGH : LOW);
+  //     Serial.println(isRelayOn ? "Relay ON dari tombol!" : "Relay OFF dari tombol!");
+  //     relayStartTime = isRelayOn ? currentMillis : 0; // Reset timer jika OFF
+  //   }
+  // }
+
+  // lastButtonState = buttonState; // Simpan status tombol sebelumnya
 }

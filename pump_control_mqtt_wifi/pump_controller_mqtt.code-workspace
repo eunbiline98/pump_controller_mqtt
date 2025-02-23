@@ -1,0 +1,28 @@
+{
+  "folders": [
+    {
+      "path": ".."
+    },
+    {
+      "name": "pump_control_mqtt_wifi",
+      "path": "."
+    },
+    {
+      "name": "esp32_node_reader_lora_rfm96w",
+      "path": "../../Learning/esp32_node_reader_lora_rfm96w"
+    },
+    {
+      "name": "esp32_node_sender_lora_rfm96w",
+      "path": "../../Learning/esp32_node_sender_lora_rfm96w"
+    },
+    {
+      "name": "LoRa_Transmitter",
+      "path": "../LoRa_Transmitter"
+    },
+    {
+      "name": "LoRa_Receiver",
+      "path": "../LoRa_Receiver"
+    }
+  ],
+  "settings": {}
+}

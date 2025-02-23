@@ -6,7 +6,7 @@
 <setting alwaysvectorfont="no"/>
 <setting verticaltext="up"/>
 </settings>
-<grid distance="0.05" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.025" altunitdist="inch" altunit="inch"/>
+<grid distance="0.005" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.025" altunitdist="inch" altunit="inch"/>
 <layers>
 <layer number="1" name="Top" color="4" fill="1" visible="no" active="yes"/>
 <layer number="2" name="Route2" color="1" fill="3" visible="no" active="no"/>
@@ -30,8 +30,8 @@
 <layer number="20" name="Dimension" color="15" fill="1" visible="yes" active="yes"/>
 <layer number="21" name="tPlace" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="22" name="bPlace" color="7" fill="1" visible="yes" active="yes"/>
-<layer number="23" name="tOrigins" color="15" fill="1" visible="no" active="yes"/>
-<layer number="24" name="bOrigins" color="15" fill="1" visible="no" active="yes"/>
+<layer number="23" name="tOrigins" color="15" fill="1" visible="yes" active="yes"/>
+<layer number="24" name="bOrigins" color="15" fill="1" visible="yes" active="yes"/>
 <layer number="25" name="tNames" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="26" name="bNames" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="27" name="tValues" color="7" fill="1" visible="no" active="yes"/>
@@ -49,7 +49,7 @@
 <layer number="39" name="tKeepout" color="4" fill="11" visible="yes" active="yes"/>
 <layer number="40" name="bKeepout" color="1" fill="11" visible="yes" active="yes"/>
 <layer number="41" name="tRestrict" color="4" fill="10" visible="yes" active="yes"/>
-<layer number="42" name="bRestrict" color="1" fill="10" visible="no" active="yes"/>
+<layer number="42" name="bRestrict" color="1" fill="10" visible="yes" active="yes"/>
 <layer number="43" name="vRestrict" color="2" fill="10" visible="yes" active="yes"/>
 <layer number="44" name="Drills" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="45" name="Holes" color="7" fill="1" visible="yes" active="yes"/>
@@ -186,9 +186,6 @@
 <wire x1="7.62" y1="77.47" x2="15.24" y2="77.47" width="0.8128" layer="42"/>
 <text x="31.75" y="7.62" size="1.6764" layer="21" rot="R180">Pump Controller V.1.1
 LoRa</text>
-<wire x1="71.12" y1="80.01" x2="71.12" y2="27.94" width="0.8128" layer="42"/>
-<wire x1="73.66" y1="25.4" x2="71.12" y2="27.94" width="0.8128" layer="42"/>
-<wire x1="80.01" y1="25.4" x2="73.66" y2="25.4" width="0.8128" layer="42"/>
 </plain>
 <libraries>
 <library name="con-phoenix-smkdsp">
@@ -2572,7 +2569,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="46.65214375" y="24.97585" size="1.27" layer="25" ratio="10" rot="R60"/>
 <attribute name="VALUE" x="49.9517" y="23.07085" size="1.27" layer="27" ratio="10" rot="R60"/>
 </element>
-<element name="C2" library="resistor" package="E5-5" value="" x="7.112" y="11.43" rot="R210"/>
+<element name="C2" library="resistor" package="E5-5" value="" x="7.112" y="11.43" rot="R30"/>
 </elements>
 <signals>
 <signal name="+5V">
@@ -2647,8 +2644,8 @@ design rules under a new name.</description>
 <wire x1="24.13" y1="27.94" x2="26.67" y2="30.48" width="1.016" layer="16"/>
 <wire x1="26.67" y1="30.48" x2="46.99" y2="30.48" width="1.016" layer="16"/>
 <wire x1="47.752" y1="24.384" x2="49.149" y2="25.781" width="1.016" layer="16"/>
-<wire x1="62.23" y1="20.32" x2="54.61" y2="25.4" width="0" layer="19" extent="16-16"/>
-<wire x1="55.92" y1="73.66" x2="82.55" y2="73.66" width="0" layer="19" extent="1-1"/>
+<wire x1="82.55" y1="73.66" x2="55.92" y2="73.66" width="0" layer="19" extent="1-1"/>
+<wire x1="54.61" y1="25.4" x2="62.23" y2="20.32" width="0" layer="19" extent="16-16"/>
 </signal>
 <signal name="+3V3">
 <contactref element="BTN" pad="2"/>
