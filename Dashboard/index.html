@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Relay</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <h2>Dashboard Kontrol Relay</h2>
+
+      <!-- Status Section -->
+      <div class="status-container">
+        <p>Status Relay: <span id="relayStatus">Menunggu...</span></p>
+        <p>Status MQTT: <span id="mqttStatus">Disconnected</span></p>
+      </div>
+
+      <!-- Button Control -->
+      <div class="button-container">
+        <button id="btnOn" class="button on">Nyalakan Relay</button>
+        <button id="btnOff" class="button off">Matikan Relay</button>
+      </div>
+
+      <!-- Timer Start & End -->
+      <div class="timer-container">
+        <h3>Atur Timer</h3>
+        <label for="timerStart">Start:</label>
+        <input type="time" id="timerStart" value="08:00" />
+        <label for="timerEnd">End:</label>
+        <input type="time" id="timerEnd" value="18:00" />
+      </div>
+    </div>
+    <!-- Load MQTT.js dan SweetAlert2 -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="script.js" defer></script>
+  </body>
+</html>
