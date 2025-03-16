@@ -14,7 +14,7 @@ const mqttOptions = {
 
 // MQTT broker host and topic
 const mqttHost = "ws://docker-busol.paditech.id:8083/mqtt";
-const topic = "relay/cmnd";
+const topic = "relay/state";
 
 Swal.fire({
   title: "Menghubungkan ke MQTT...",
@@ -67,16 +67,34 @@ client.on("error", function (error) {
 client.on("close", function () {
   console.log("MQTT disconnected!");
   document.getElementById("mqttStatus").innerText = "Disconnected";
-  showMqttSwal();
+  disconnectMqttSwal();
 });
 
 client.on("message", function (topic, message) {
   const messageString = message.toString();
   console.log(`Message received on topic ${topic}:`, messageString);
 
-  if (topic === "relay/cmnd") {
+  if (topic === "relay/state") {
     document.getElementById("relayStatus").innerText = messageString;
   }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+  const relayStatus = document.getElementById("relayStatus");
+  const mqttStatus = document.getElementById("mqttStatus");
+  const btnOn = document.getElementById("btnOn");
+  const btnOff = document.getElementById("btnOff");
+
+  // Simulasi perubahan status relay
+  btnOn.addEventListener("click", function () {
+    relayStatus.style.color = "#00c853";
+    Swal.fire("Relay Nyala!", "Relay telah diaktifkan.", "success");
+  });
+
+  btnOff.addEventListener("click", function () {
+    relayStatus.style.color = "#d32f2f";
+    Swal.fire("Relay Mati!", "Relay telah dimatikan.", "error");
+  });
 });
 
 // Event listener untuk tombol
@@ -91,150 +109,133 @@ if (btnOn && btnOff) {
   btnOn.addEventListener("click", () => {
     if (client.connected) {
       client.publish("relay/cmnd", "ON");
-      showSuccessSwal("Relay Dinyalakan!");
+      client.publish("relay/state", "ON", { retain: true });
     } else {
-      showMqttSwal();
+      disconnectMqttSwal();
     }
   });
 
   btnOff.addEventListener("click", () => {
     if (client.connected) {
       client.publish("relay/cmnd", "OFF");
-      showSuccessSwal("Relay Dimatikan!");
+      client.publish("relay/state", "OFF", { retain: true });
     } else {
-      showMqttSwal();
+      disconnectMqttSwal();
     }
   });
 }
 
 btnSettings.addEventListener("click", () => {
-  Swal.fire({
-    title: "Pengaturan Pressure",
-    html: `
-      <label for='pressureMinSlider'>Batas Bawah:</label>
-      <input type='range' id='pressureMinSlider' min='0' max='100' step='1' value='10' oninput='updateMinPressure()'/>
-      <p>Batas Bawah: <span id='pressureMinValue'>10</span></p>
-      
-      <label for='pressureMaxSlider'>Batas Atas:</label>
-      <input type='range' id='pressureMaxSlider' min='0' max='100' step='1' value='90' oninput='updateMaxPressure()'/>
-      <p>Batas Atas: <span id='pressureMaxValue'>90</span></p>
-    `,
-    showCancelButton: true,
-    confirmButtonText: "Simpan",
-    didOpen: () => {
-      // Menambahkan event listener untuk update teks saat slider berubah
-      const minSlider = document.getElementById("pressureMinSlider");
-      const maxSlider = document.getElementById("pressureMaxSlider");
-      const minValue = document.getElementById("pressureMinValue");
-      const maxValue = document.getElementById("pressureMaxValue");
+  let lastMinPressure = 10;
+  let lastMaxPressure = 90;
 
-      minSlider.addEventListener("input", () => {
-        minValue.textContent = minSlider.value;
-      });
+  // Subscribe ke MQTT untuk mendapatkan last state
+  client.subscribe("set/pressure", { qos: 0 });
 
-      maxSlider.addEventListener("input", () => {
-        maxValue.textContent = maxSlider.value;
-      });
-    },
-    preConfirm: () => {
-      return new Promise((resolve) => {
-        const pressureMin = document.getElementById("pressureMinSlider").value;
-        const pressureMax = document.getElementById("pressureMaxSlider").value;
-
-        if (client && client.connected) {
-          // Publish data ke MQTT
-          client.publish("pressure/min", pressureMin, { retain: true });
-          client.publish("pressure/max", pressureMax, { retain: true });
-
-          console.log(`Published pressure/min: ${pressureMin}`);
-          console.log(`Published pressure/max: ${pressureMax}`);
-
-          // Jika sukses, resolve() untuk Swal sukses
-          resolve(true);
-        } else {
-          // Jika gagal, resolve(false) untuk Swal error
-          resolve(false);
-        }
-      });
-    },
-  }).then((result) => {
-    if (result.isConfirmed) {
-      if (result.value) {
-        // Jika berhasil publish ke MQTT
-        Swal.fire({
-          title: "Berhasil!",
-          text: "Pengaturan Pressure berhasil disimpan di MQTT.",
-          icon: "success",
-          confirmButtonText: "OK",
-        });
-      } else {
-        // Jika gagal publish ke MQTT
-        Swal.fire({
-          title: "Gagal!",
-          text: "Tidak dapat menyimpan pengaturan. Periksa koneksi MQTT.",
-          icon: "error",
-          confirmButtonText: "OK",
-        });
+  client.on("message", (topic, message) => {
+    if (topic === "set/pressure") {
+      try {
+        const payload = JSON.parse(message.toString());
+        lastMinPressure = parseInt(payload.down);
+        lastMaxPressure = parseInt(payload.up);
+      } catch (error) {
+        console.error("Gagal parsing JSON dari MQTT:", error);
       }
     }
   });
-});
 
-// Fungsi untuk menampilkan pop-up error MQTT disconnect
-function showMqttSwal() {
-  Swal.fire({
-    title: "Koneksi Terputus!",
-    text: "MQTT tidak terhubung. Memeriksa koneksi...",
-    icon: "error",
-    confirmButtonText: "OK",
-    timer: 5000,
-    timerProgressBar: true,
-  });
-}
+  // Tunggu 1 detik sebelum menampilkan Swal
+  setTimeout(() => {
+    Swal.fire({
+      title: "Pengaturan Pressure",
+      html: `
+        <label for='pressureMinSlider'>Batas Bawah:</label>
+        <input type='range' id='pressureMinSlider' min='0' max='100' step='1' value='${lastMinPressure}'/>
+        <p>Batas Bawah: <span id='pressureMinValue'>${lastMinPressure}</span></p>
+        
+        <label for='pressureMaxSlider'>Batas Atas:</label>
+        <input type='range' id='pressureMaxSlider' min='0' max='100' step='1' value='${lastMaxPressure}'/>
+        <p>Batas Atas: <span id='pressureMaxValue'>${lastMaxPressure}</span></p>
+      `,
+      showCancelButton: true,
+      confirmButtonText: "Simpan",
+      didOpen: () => {
+        const minSlider = document.getElementById("pressureMinSlider");
+        const maxSlider = document.getElementById("pressureMaxSlider");
+        const minValue = document.getElementById("pressureMinValue");
+        const maxValue = document.getElementById("pressureMaxValue");
 
-// Fungsi untuk menampilkan pop-up sukses
-function showSuccessSwal(message) {
-  Swal.fire({
-    title: "Berhasil!",
-    text: message,
-    icon: "success",
-    confirmButtonText: "OK",
-    timer: 3000,
-    timerProgressBar: true,
-  });
-}
+        // Update value saat slider digerakkan
+        minSlider.addEventListener("input", () => {
+          let minVal = parseInt(minSlider.value);
+          let maxVal = parseInt(maxSlider.value);
 
-// Fungsi untuk memperbarui batas bawah tekanan secara independen
-function updateMinPressure() {
-  const minPressureSlider = document.getElementById("pressureMinSlider");
-  const minPressureValue = document.getElementById("pressureMinValue");
-  minPressureValue.innerText = minPressureSlider.value;
+          // Jika batas bawah lebih besar dari batas atas, update maxSlider
+          if (minVal > maxVal) {
+            maxSlider.value = minVal;
+            maxValue.textContent = minVal;
+          }
 
-  console.log("set/pressure/down:", minPressureSlider.value); // Debugging log
+          minValue.textContent = minVal;
+        });
 
-  if (client.connected) {
-    client.publish("set/pressure/down", minPressureSlider.value);
-  } else {
-    showMqttSwal();
-  }
-}
+        maxSlider.addEventListener("input", () => {
+          let minVal = parseInt(minSlider.value);
+          let maxVal = parseInt(maxSlider.value);
 
-// Fungsi untuk memperbarui batas atas tekanan secara independen
-function updateMaxPressure() {
-  const maxPressureSlider = document.getElementById("pressureMaxSlider");
-  const maxPressureValue = document.getElementById("pressureMaxValue");
-  maxPressureValue.innerText = maxPressureSlider.value;
+          // Jika batas atas lebih kecil dari batas bawah, update minSlider
+          if (maxVal < minVal) {
+            minSlider.value = maxVal;
+            minValue.textContent = maxVal;
+          }
 
-  console.log("set/pressure/up:", maxPressureSlider.value, { retain: true }); // Debugging log
+          maxValue.textContent = maxVal;
+        });
+      },
+      preConfirm: () => {
+        return new Promise((resolve) => {
+          const pressureMin =
+            document.getElementById("pressureMinSlider").value;
+          const pressureMax =
+            document.getElementById("pressureMaxSlider").value;
 
-  if (client.connected) {
-    client.publish("set/pressure/up", maxPressureSlider.value, {
-      retain: true,
+          const payload = JSON.stringify({
+            down: pressureMin,
+            up: pressureMax,
+          });
+
+          if (client && client.connected) {
+            client.publish("set/pressure", payload, { retain: true });
+
+            console.log(`Published set/pressure: ${payload}`, { retain: true });
+
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        });
+      },
+    }).then((result) => {
+      if (result.isConfirmed) {
+        if (result.value) {
+          Swal.fire({
+            title: "Berhasil!",
+            text: "Pengaturan Pressure berhasil disimpan di MQTT.",
+            icon: "success",
+            confirmButtonText: "OK",
+          });
+        } else {
+          Swal.fire({
+            title: "Gagal!",
+            text: "Tidak dapat menyimpan pengaturan. Periksa koneksi MQTT.",
+            icon: "error",
+            confirmButtonText: "OK",
+          });
+        }
+      }
     });
-  } else {
-    showMqttSwal();
-  }
-}
+  }, 1000);
+});
 
 // Ambil elemen input timer
 const timerStartInput = document.getElementById("timerStart");
@@ -281,7 +282,7 @@ function publishTimer() {
         confirmButtonText: "OK",
       });
     } else {
-      showMqttSwal();
+      disconnectMqttSwal();
     }
   } else {
     Swal.fire({
@@ -295,3 +296,15 @@ function publishTimer() {
 
 // Event listener untuk tombol OK
 btnOk.addEventListener("click", publishTimer);
+
+// Fungsi untuk menampilkan pop-up error MQTT disconnect
+function disconnectMqttSwal() {
+  Swal.fire({
+    title: "Koneksi Terputus!",
+    text: "MQTT tidak terhubung. Memeriksa koneksi...",
+    icon: "error",
+    confirmButtonText: "OK",
+    timer: 5000,
+    timerProgressBar: true,
+  });
+}
